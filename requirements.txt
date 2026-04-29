@@ -1,0 +1,17 @@
+# 資料處理與數值計算
+pandas
+numpy
+
+# 資料視覺化 (用於跑散佈圖、趨勢線與折線圖)
+matplotlib
+seaborn
+
+# 處理 Excel 檔案 (如果資料總表包含 .xlsx 格式)
+openpyxl
+
+# 統計分析 (若後續需要跑迴歸模型或顯著性檢定)
+statsmodels
+scipy
+
+# 導出高品質圖片 (用於論文插入)
+kaleido
