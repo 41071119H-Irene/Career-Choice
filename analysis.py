@@ -14,7 +14,7 @@ OUTPUT_DIR = "research_final_complete_package"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # 設定學術繪圖風格
-plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei'] 
+plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei']  # 確保支援中文顯示
 plt.rcParams['axes.unicode_minus'] = False
 sns.set_theme(style="whitegrid", font='Microsoft JhengHei')
 
@@ -82,73 +82,205 @@ def build_thesis_database():
     return df
 
 # ==========================================
-# 4. 圖表分析生成器 (Chart 1 - Chart 8)
+# 4. 圖表分析生成器 (新 5 張核心圖表)
 # ==========================================
 def generate_all_plots(df):
-    log("開始產出 8 張核心研究圖表 (含 2023 四象限分析)...")
+    log("開始產出 5 張核心假設驗證圖表...")
     
-    # 圖 1 & 2: 2022 背景與四象限
-    df22 = df[df['Year'] == 2022].dropna(subset=['Unemployment_Rate', 'Self_Employment_Rate'])
-    v_avg22, h_avg22 = df22['Unemployment_Rate'].mean(), df22['Self_Employment_Rate'].mean()
+   # ---------------------------------------------------------
+    # 圖 1: 高教—自僱：制度調節效果圖 (The Interaction Plot)
+    # 對應假設: H1 (Institutional Moderation)
+    # ---------------------------------------------------------
+    log("繪製 圖1: 制度調節效果圖 (使用跨年度平均)...")
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7))
-    sns.regplot(x='HE_Rate', y='Self_Employment_Rate', data=df22, ax=ax1, scatter_kws={'alpha':0.4})
-    ax1.set_title("Chart 1: 全球高教擴張與自雇率溢出關係 (2022)")
+    # 計算各國 2013-2023 的平均值，過濾短期波動雜訊
+    df_h1_mean = df.groupby(['Code', 'Group'])[['HE_Rate', 'Self_Employment_Rate']].mean().reset_index()
+    df_h1_mean = df_h1_mean.dropna(subset=['HE_Rate', 'Self_Employment_Rate'])
+
+    # 繪製迴歸與散佈圖 (加大點的尺寸 s=80)
+    g1 = sns.lmplot(x='HE_Rate', y='Self_Employment_Rate', hue='Group', data=df_h1_mean, 
+                    aspect=1.5, palette='Set1', scatter_kws={'s': 80, 'alpha': 0.7})
     
-    ax2.axvline(v_avg22, color='grey', ls='--'); ax2.axhline(h_avg22, color='grey', ls='--')
-    sns.scatterplot(x='Unemployment_Rate', y='Self_Employment_Rate', hue='Group', size='TEA', sizes=(50, 500), data=df22, ax=ax2, palette='coolwarm')
-    for code in ['TWN', 'JPN', 'KOR']:
-        p = df22[df22['Code'] == code]
-        if not p.empty: ax2.text(p['Unemployment_Rate'].iloc[0]+0.15, p['Self_Employment_Rate'].iloc[0], f"{code}", weight='bold')
-    ax2.set_title("Chart 2: 失業壓力 vs 自雇出口 (2022 四象限)")
-    plt.savefig(f"{OUTPUT_DIR}/plot_01_02_2022_context.png")
+    # 標示出東亞國家的點，讓視覺焦點更明確
+    for _, row in df_h1_mean[df_h1_mean['Group'] == 'East Asia'].iterrows():
+        plt.text(row['HE_Rate'] + 0.8, row['Self_Employment_Rate'], row['Code'], weight='bold', color='black')
 
-    # 圖 3: 東亞趨勢
-    plt.figure(figsize=(10, 5))
-    sns.lineplot(data=df[df['Is_East_Asia']==1], x='Year', y='Self_Employment_Rate', hue='Code', marker='o', linewidth=2)
-    plt.title("Chart 3: 東亞三國自雇率變遷軌跡 (2013-2023)")
-    plt.savefig(f"{OUTPUT_DIR}/plot_03_ea_trends.png")
+    g1.fig.suptitle("圖1: 高教—自僱：制度調節效果圖 (2013-2023 平均)\n[對應假設: H1 Institutional Moderation]", y=1.05, fontsize=14)
+    g1.set_axis_labels("高等教育在學率 (HE Rate, %)", "自僱率 (Self-employment Rate, %)")
+    plt.savefig(f"{OUTPUT_DIR}/plot_01_interaction_effect.png", bbox_inches='tight')
+    plt.close()
 
-    # 圖 4: 台灣深度故事
-    twn = df[df['Code'] == 'TWN'].sort_values('Year')
-    fig, ax3 = plt.subplots(figsize=(10, 5))
-    ax4 = ax3.twinx()
-    ax3.plot(twn['Year'], twn['HE_Rate'], 'g-s', label='高教在學率', linewidth=2)
-    ax4.plot(twn['Year'], twn['TEA'], 'r-^', label='TEA 指數', linewidth=2)
-    plt.title("Chart 4: 台灣個案連動分析")
-    ax3.legend(loc='upper left'); ax4.legend(loc='upper right')
-    plt.savefig(f"{OUTPUT_DIR}/plot_04_taiwan.png")
+    # ---------------------------------------------------------
+    # 圖 2: TEA—動機：人力資本錯置氣泡圖 (The Qualitative Nature - 四象限版)
+    # 對應假設: H2 (Structural Overflow)
+    # ---------------------------------------------------------
+    log("繪製 圖2: 人力資本錯置氣泡圖 (四象限版)...")
+    # 計算 2013-2023 的各國平均值
+    # 這裡加上 'Is_East_Asia' 確保後續迴圈讀取不會報錯
+    df_mean = df.groupby(['Code', 'Group', 'Is_East_Asia'])[['Moti_Index', 'TEA', 'Self_Employment_Rate']].mean().reset_index()
+    df_mean = df_mean.dropna(subset=['Moti_Index', 'TEA', 'Self_Employment_Rate'])
+    
+    # 計算全體國家的 Moti_Index (X軸) 與 TEA (Y軸) 平均值
+    x_avg = df_mean['Moti_Index'].mean()
+    y_avg = df_mean['TEA'].mean()
 
-    # 圖 5: 創業動機 (2018)
-    plt.figure(figsize=(9, 6))
-    df18 = df[df['Year'] == 2018].dropna(subset=['Moti_Index', 'TEA'])
-    sns.scatterplot(x='Moti_Index', y='TEA', hue='Group', s=150, data=df18)
-    plt.axvline(df18['Moti_Index'].mean(), color='gray', ls='--')
-    plt.title("Chart 5: 創業性質：機會型 vs 生存型 (2018)")
-    plt.savefig(f"{OUTPUT_DIR}/plot_05_motivation.png")
+    plt.figure(figsize=(11, 8)) # 稍微放大版面，讓四象限看起來更大氣
+    
+    # 繪製象限基準線 (十字虛線)
+    plt.axvline(x_avg, color='grey', ls='--', alpha=0.6, linewidth=1.5)
+    plt.axhline(y_avg, color='grey', ls='--', alpha=0.6, linewidth=1.5)
+    
+    # 繪製氣泡圖 (微調氣泡大小的上限，讓視覺張力更好)
+    sns.scatterplot(x='Moti_Index', y='TEA', size='Self_Employment_Rate', hue='Group', 
+                    sizes=(80, 1200), alpha=0.75, palette='Set1', data=df_mean)
+    
+    # 標示東亞國家的點 (TWN, JPN, KOR)
+    for _, row in df_mean[df_mean['Is_East_Asia'] == 1].iterrows():
+        plt.text(row['Moti_Index'] + 0.15, row['TEA'], row['Code'], 
+                 weight='bold', color='black', fontsize=11)
+        
+    plt.title("圖2: TEA—動機：人力資本錯置四象限氣泡圖 (2013-2023 平均)\n[對應假設: H2 Structural Overflow]", fontsize=15, pad=15)
+    plt.xlabel(f"Moti Index (創業動機指數)  [平均基準線: {x_avg:.2f}]", fontsize=12)
+    plt.ylabel(f"TEA (早期創業活動指數)  [平均基準線: {y_avg:.2f}]", fontsize=12)
 
-    # 圖 6: 調節效果 (2022)
-    sns.lmplot(x='HE_Rate', y='Self_Employment_Rate', hue='Group', data=df22, aspect=1.4, palette='Set1')
-    plt.title("Chart 6: 高教擴張之調節效果視覺化 (2022)")
-    plt.savefig(f"{OUTPUT_DIR}/plot_06_interaction.png")
+    
+    # 將圖例移到圖外
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title="指標說明")
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/plot_02_structural_overflow_quadrant.png", bbox_inches='tight')
+    plt.close()
 
-    # 圖 7: 疫情前後斜率對照
-    df_comp = df[df['Year'].isin([2019, 2023])].copy()
-    df_comp['Period'] = df_comp['Year'].map({2019: '疫情前 (2019)', 2023: '後疫情/AI (2023)'})
-    sns.lmplot(x='HE_Rate', y='Self_Employment_Rate', hue='Group', col='Period', data=df_comp, aspect=1.2)
-    plt.savefig(f"{OUTPUT_DIR}/plot_07_pandemic_comparison.png")
-
-    # 圖 8: 新增的 2023 四象限分析
+    # ---------------------------------------------------------
+    # 圖 3: 2023 全球象限圖：勞動力洩壓閥機制 (The Mechanism Quadrant)
+    # 對應假設: H2 (The Pressure Relief Valve)
+    # ---------------------------------------------------------
+    log("繪製 圖3: 2023 全球象限圖 (統一高對比鮮豔色系)...")
     df23 = df[df['Year'] == 2023].dropna(subset=['Unemployment_Rate', 'Self_Employment_Rate'])
     v_avg23, h_avg23 = df23['Unemployment_Rate'].mean(), df23['Self_Employment_Rate'].mean()
+    
     plt.figure(figsize=(12, 8))
-    plt.axvline(v_avg23, color='grey', ls='--', alpha=0.5); plt.axhline(h_avg23, color='grey', ls='--', alpha=0.5)
-    sns.scatterplot(x='Unemployment_Rate', y='Self_Employment_Rate', hue='Group', size='TEA', sizes=(100, 1000), data=df23, palette='coolwarm', alpha=0.7)
+    
+    # 繪製十字基準線
+    plt.axvline(v_avg23, color='grey', ls='--', alpha=0.5, linewidth=1.5)
+    plt.axhline(h_avg23, color='grey', ls='--', alpha=0.5, linewidth=1.5)
+    
+    # 統一使用 Set1 調色盤，確保東亞組的顏色與前兩張圖完全相同
+    # alpha 調高至 0.85 讓氣泡顏色更實心、更鮮豔
+    sns.scatterplot(x='Unemployment_Rate', y='Self_Employment_Rate', hue='Group', 
+                    size='TEA', sizes=(100, 1200), data=df23, 
+                    palette='Set1', alpha=0.85, hue_order=['East Asia', 'Other OECD'])
+    
+    # 標示東亞三國 (字體加黑、加大，避免被鮮豔的氣泡吃掉)
     for code in ['TWN', 'JPN', 'KOR']:
         p = df23[df23['Code'] == code]
-        if not p.empty: plt.text(p['Unemployment_Rate'].iloc[0]+0.1, p['Self_Employment_Rate'].iloc[0], f"{code} (TEA:{p['TEA'].iloc[0]:.1f})", weight='bold')
-    plt.title("Chart 8: 2023 全球失業壓力與自雇出口象限圖", fontsize=16)
-    plt.savefig(f"{OUTPUT_DIR}/plot_08_quadrant_2023.png")
+        if not p.empty: 
+            plt.text(p['Unemployment_Rate'].iloc[0] + 0.1, p['Self_Employment_Rate'].iloc[0], 
+                     f"{code} (TEA:{p['TEA'].iloc[0]:.1f})", weight='bold', fontsize=11, color='black')
+            
+    plt.title("圖3: 2023 全球象限圖：勞動力洩壓閥機制\n[對應假設: H2 The Pressure Relief Valve]", fontsize=16, pad=15)
+    plt.xlabel(f"失業率 (Unemployment Rate, %)  [平均基準線: {v_avg23:.2f}]", fontsize=12)
+    plt.ylabel(f"自僱率 (Self-employment Rate, %)  [平均基準線: {h_avg23:.2f}]", fontsize=12)
+    
+    # 將圖例移到圖外，避免遮擋氣泡，並加上標題
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', title="國家群組與 TEA 氣泡大小")
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/plot_03_mechanism_quadrant_2023.png", bbox_inches='tight')
+    plt.close()
+
+    # ---------------------------------------------------------
+    # 圖 4: 2019 vs 2023 斜率對照圖：技術變革下的職涯衝擊 (The AI Shock)
+    # 對應假設: H3 (Intensification Effect)
+    # ---------------------------------------------------------
+    log("繪製 圖 4: 2019 vs 2023 斜率對照標註版...")
+    
+    # 準備對比數據
+    df_comp = df[df['Year'].isin([2019, 2023])].copy()
+    # 建立一個明確的排序標籤，確保 2019 在左，2023 在右
+    df_comp['Period'] = df_comp['Year'].map({2019: '1. 2019 (Pre-Pandemic)', 2023: '2. 2023 (AI Shock)'})
+    
+    # 設定標記與顏色（延續圖一的雙重編碼：東亞星號、其他圓點）
+    hue_order = ['East Asia', 'Other OECD']
+    marker_map = ['*', 'o']
+    
+    g4 = sns.lmplot(
+        x='HE_Rate', y='Self_Employment_Rate', 
+        hue='Group', col='Period', 
+        data=df_comp, 
+        hue_order=hue_order,
+        markers=marker_map,
+        palette='Set1', 
+        aspect=1.2, 
+        scatter_kws={'s': 200, 'alpha': 0.6},
+        facet_kws={'sharey': True, 'sharex': True} # 確保 X, Y 軸刻度一致，方便對比位移
+    )
+
+    # --- 關鍵步驟：在分面子圖中標註台日韓 ---
+    # 遍歷每一個子圖 (ax) 與其對應的期別名稱 (title)
+    for period_name, ax in g4.axes_dict.items():
+        # 篩選該子圖對應年份的東亞資料
+        subset = df_comp[(df_comp['Period'] == period_name) & (df_comp['Is_East_Asia'] == 1)]
+        
+        for _, row in subset.iterrows():
+            # 加上國家代碼標籤
+            # row['HE_Rate']+0.8 是為了把文字稍微往右移，避免擋到點
+            ax.text(
+                row['HE_Rate'] + 0.8, 
+                row['Self_Employment_Rate'], 
+                row['Code'], 
+                weight='bold', 
+                fontsize=9, 
+                color='black'
+            )
+
+    g4.fig.suptitle("圖4: 2019 vs 2023 斜率對照圖：技術變革下的職涯衝擊\n[標註東亞三國位移狀況]", y=1.08, fontsize=15)
+    g4.set_axis_labels("高等教育在學率 (HE Rate, %)", "自僱率 (Self-employment Rate, %)")
+    
+    plt.savefig(f"{OUTPUT_DIR}/plot_04_ai_shock_comparison_labeled.png", bbox_inches='tight')
+    plt.close()
+
+    # ---------------------------------------------------------
+    # 圖 5: 東亞(台灣、日本、韓國)時序深度分析：職涯避風港效應
+    # 對應理論: Social Buffer / Reservoir Hypothesis
+    # ---------------------------------------------------------
+    log("繪製 圖5: 東亞三國時序深度分析 (加入黃底疫情圖例)...")
+    ea_codes = ['TWN', 'JPN', 'KOR']
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    for i, code in enumerate(ea_codes):
+        country_data = df[df['Code'] == code].sort_values('Year')
+        if country_data.empty: continue
+            
+        ax1 = axes[i]
+        ax2 = ax1.twinx()
+        
+        # 1. 繪製黃色疫情區塊，並存成變數 p1
+        p1 = ax1.axvspan(2019.8, 2022.2, color='#fef08a', alpha=0.5, label='Pandemic (2020-2022)')
+        
+        # 2. 繪製雙 Y 軸線圖 (注意：plot 會回傳一個 list，所以我們加上 [0] 取出線條本體)
+        l1 = ax1.plot(country_data['Year'], country_data['HE_Rate'], 'g-s', label='HE Rate (高等教育)', linewidth=2.5)[0]
+        l2 = ax2.plot(country_data['Year'], country_data['TEA'], 'r-^', label='TEA (創業活躍度)', linewidth=2.5)[0]
+        
+        ax1.set_title(f"{code} 時序避風港分析", fontsize=14, weight='bold')
+        ax1.set_xlabel("Year")
+        ax1.set_ylabel("高等教育在學率 (%)", color='g')
+        ax2.set_ylabel("創業活躍度 TEA", color='r')
+        
+        # 設定 X 軸刻度避免小數點年份
+        ax1.set_xticks(range(2013, 2024, 2))
+        
+        # 3. 合併所有圖例 (只在第一張圖 TWN 顯示，避免畫面太雜)
+        if i == 0: 
+            # 將黃底、綠線、紅線的物件與名稱打包
+            handles = [p1, l1, l2]
+            labels = [h.get_label() for h in handles]
+            
+            # 放到左上角，並稍微加上一點背景白底避免與線條重疊看不清
+            ax1.legend(handles, labels, loc='upper left', framealpha=0.9)
+
+    plt.suptitle("圖5: 東亞時序深度分析：職涯避風港效應\n[對應理論: Social Buffer / Reservoir Hypothesis]", fontsize=16, y=1.08)
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/plot_05_career_reservoir_timeline.png", bbox_inches='tight')
+    plt.close()
 
 # ==========================================
 # 5. 主執行程序
@@ -158,6 +290,6 @@ if __name__ == "__main__":
         final_df = build_thesis_database()
         generate_all_plots(final_df)
         final_df.to_csv(f"{OUTPUT_DIR}/final_dataset_2023.csv", index=False, encoding='utf-8-sig')
-        log(f"🎉 全部生成完畢！請至 '{OUTPUT_DIR}' 資料夾查看。")
+        log(f"🎉 全部 5 張核心圖表生成完畢！請至 '{OUTPUT_DIR}' 資料夾查看。")
     except Exception as e:
         log(f"❌ 錯誤: {e}")
