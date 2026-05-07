@@ -1,33 +1,40 @@
-# 🎓 Labor Market Overflow: Higher Education & Self-Employment in East Asia (2013-2023)
-
-This repository contains the full analytical pipeline for researching the **"Higher Education Overflow"** phenomenon in East Asian labor markets (Taiwan, Japan, and South Korea). By utilizing panel data from 2013 to 2023, this project explores how rapid tertiary education expansion drives high-skilled labor into self-employment as a structural "social buffer."
+This repository contains the analytical pipeline and econometric visualizations for researching the **"Higher Education Overflow"** phenomenon. Focusing on East Asian labor markets (Taiwan, Japan, and South Korea),compare with OECD countries, this project explores how tertiary education expansion acts as a structural "social buffer," diverting high-skilled labor into self-employment when organizational roles are saturated.
 
 ## 📌 Research Overview
-The core objective is to validate the **Overflow Hypothesis**: In East Asian contexts, where traditional organizational roles (corporate/white-collar) are saturated, higher education expansion doesn't just lead to better employment—it pushes graduates into self-employment.
 
-### Key Hypotheses:
-1. **The Interaction Effect**: The positive correlation between Higher Education (HE) rates and self-employment is significantly stronger in East Asian countries compared to other OECD nations.
-2. **The Social Buffer**: Self-employment serves as a flexible reservoir for high-skilled labor, particularly during external shocks like the COVID-19 pandemic and the 2023 Generative AI boom.
+In rigid labor markets, higher education expansion does not always lead to traditional professional employment. This project validates the **"Pressure Relief Valve Hypothesis"**: self-employment serves as a vital structural outlet for human capital that the formal corporate sector cannot absorb.
+
+### Core Hypotheses:
+1.  **H1: Institutional Moderation**: The "Overflow Effect" (Higher Education Rate → Self-employment) is significantly steeper in East Asian institutional regimes compared to other OECD nations due to specific corporate and cultural structures.
+2.  **H2: The Quality-Dynamic Paradox**: East Asian labor overflow is characterized by "Necessity-driven" motives and low Total Early-stage Entrepreneurial Activity (TEA), representing a structural mismatch of human capital.
+3.  **H3: Technological Catalysis (AI Shock)**: External shocks, particularly the **2023 Generative AI boom**, have intensified this diversion, forcing a more rapid transition into non-traditional career paths for the highly educated.
 
 ---
 
-## 📊 Visualization Gallery
-The script automatically generates 8 core research charts that build the empirical argument:
+## 📊 Visualization Gallery (AHRD Standards)
 
-| ID | Chart Name | Research Insight |
+The pipeline automatically generates five core figures that form the empirical backbone of the study:
+
+| Figure | Name | Analytical Insight |
 | :--- | :--- | :--- |
-| **Chart 2** | Global Quadrant Analysis (2022) | Categorizes countries into "Opportunity" vs. "Necessity" driven self-employment. |
-| **Chart 3** | East Asia Trend Trajectory | Tracks the unique self-employment paths of TWN, JPN, and KOR from 2013-2023. |
-| **Chart 4** | Taiwan Case Deep Dive | Visualizes the time-series correlation between HE enrollment and entrepreneurial activity (TEA). |
-| **Chart 6** | Interaction Slope Analysis | Empirically demonstrates the steeper "overflow slope" in East Asia. |
-| **Chart 7** | Pandemic Comparison (2019 vs 2023) | Analyzes how COVID-19 and AI have intensified the overflow mechanism. |
-| **Chart 8** | 2023 Global Quadrant | **Latest Data**: Maps the labor market landscape in the post-pandemic/AI era. |
+| **Figure 1** | **Interaction Effect Plot** | Empirically demonstrates H1: The significantly steeper "overflow slope" in East Asian regimes ($p < 0.001$). |
+| **Figure 2** | **Structural Overflow Quadrant** | Maps the paradox of high self-employment volume paired with low entrepreneurial dynamics and survival-based motives. |
+| **Figure 3** | **Mechanism Snapshot (2023)** | Visualizes the "Low Unemployment vs. High Self-employment" equilibrium in the post-pandemic/AI era. |
+| **Figure 4** | **AI Shock Comparison** | Contrasts 2019 vs. 2023 regression slopes to demonstrate the intensifying pressure of workplace automation. |
+| **Figure 5** | **Intra-Regional Longitudinal** | Tracks the "Career Reservoir" effect in TWN, JPN, and KOR, highlighting Taiwan's unique labor market resilience. |
 
 ---
 
-## 🛠️ Features
-- **Robust Data Cleaning**: Automated handling of complex Excel headers, percentage symbols, and non-numeric outliers.
-- **Missing Value Imputation**: Utilizes linear interpolation to fill gaps in multi-national panel data, ensuring smooth time-series analysis.
-- **Econometric Modeling**: Performs OLS regression with interaction terms (`HE_Rate * Is_East_Asia`) to prove statistical significance ($p < 0.001$).
-- **Automated Reporting**: Generates comprehensive CSV reports for model coefficients, data quality, and reliability statistics.
+## 🛠️ Technical Implementation
 
+### Data Science Workflow:
+-   **Econometric Modeling**: Employs **Hierarchical Regression Analysis** to test moderating effects and measure model fit improvements ($\Delta R^2$).
+-   **Data Harmonization**: Integrates multi-source panel data (OECD, GEM, World Bank) with automated cleaning for non-numeric outliers and complex header formatting.
+-   **Time-Series Imputation**: Handles missing values through linear interpolation to ensure continuity across 10-year longitudinal datasets.
+
+### Tech Stack:
+-   **Analysis**: Python (Pandas, Statsmodels, NumPy)
+-   **Visualization**: Matplotlib, Seaborn (Optimized for academic publication aesthetics)
+-   **Reporting**: Automated CSV exports for model coefficients, p-values, and descriptive statistics.
+
+---
